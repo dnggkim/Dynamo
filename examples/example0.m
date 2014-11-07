@@ -18,7 +18,7 @@ H = heisenberg(dim, @(s,a,b) J(s)*C(a,b));
 final = [0 0 0 1].';
 initial = [1 0 0 0].';
 
-dyn = dynamo('S ket', initial, final, H, C);
+dyn = dynamo('closed ket', initial, final, H, C);
 dyn.system.set_labels(desc, dim, cl);
 dyn.seq_init(100, 6 * [1, 0]);
 dyn.easy_control([-0.1, 0.05]);

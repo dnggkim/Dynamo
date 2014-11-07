@@ -21,6 +21,7 @@ SP = (SX +1i*SY)/2;
 
 n_sites = 3; % actual chain sites
 dim = 2 * ones(1, n_sites+1); % dimension vector: qubits, or spin-1/2 chain
+D = prod(dim); % total system dimension
 target_site = n_sites
 
 % 0: ground, 1: excited state, SP lowers/annihilates
@@ -56,7 +57,7 @@ fprintf('%s\n\n', desc);
 
 ddd = n_sites + 2; % zero- and single-exciton subspaces (sink included)
 p = [1, 1+2.^(n_sites:-1:0)]; % states to keep: zero, single exciton at each site/sink
-q = setdiff(1:prod(dim), p); % states to throw away
+q = setdiff(1:D, p); % states to throw away
 
 st_labels = {'loss', 'site 1', 'site 2*', 'site 3', 'sink'};
 
@@ -109,10 +110,10 @@ c_labels = {'Z_1', 'Z_2', 'Z_3'};
 %% initial and final states
 
 % for pure state transfer
-initial = state(prod(dim(2:end)), dim); initial = initial.data; % '10..0'
-final   = state(1, dim); final = final.data; % '0..01'
+initial = zeros(D,1); initial(prod(dim(2:end))+1) = 1; % '10..0'
+final   = zeros(D,1); final(2) = 1;  % '0..01'
 
-dyn = dynamo('SB state overlap', initial(p), final(p), H_drift, H_ctrl, L_drift);
+dyn = dynamo('open state overlap', initial(p), final(p), H_drift, H_ctrl, L_drift);
 dyn.system.set_labels(desc, st_labels, c_labels);
 
 % try the expensive-but-reliable gradient method

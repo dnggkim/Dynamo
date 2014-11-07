@@ -124,7 +124,7 @@ classdef dynamo < matlab.mixin.Copyable
             config.epsilon = 1e-4;
             
           
-          case {'s'}
+          case {'closed'}
             %% Closed system
             % the generator is always Hermitian and thus normal => use exact gradient
             if nargin == 6
@@ -191,7 +191,7 @@ classdef dynamo < matlab.mixin.Copyable
             out = strcat(out, ' in a closed system.\n');
 
             
-          case {'sb'}
+          case {'open'}
             %% Open system with a Markovian bath
             % The generator isn't usually normal, so we cannot use the exact gradient method
 

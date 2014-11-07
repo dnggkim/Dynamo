@@ -19,7 +19,7 @@ H = heisenberg(dim, @(s,a,b) J(s)*C(a,b));
 final = qft(2);
 initial = eye(prod(dim));
 
-dyn = dynamo('S gate_partial', initial, final, H, C);
+dyn = dynamo('closed gate_partial', initial, final, H, C);
 dyn.system.set_labels(desc, dim, cl);
 dyn.seq_init(20, 5 * [1, 0]);
 dyn.easy_control(0.1 * ones(1,6));
