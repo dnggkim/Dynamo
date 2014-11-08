@@ -76,9 +76,6 @@ end
 sink = {op_list({{a, target_site; sqrt(2 * transfer_rate) * a', n_sites+1}}, dim)};
 sink{1} = sink{1}(p,p);
 
-% Drift Liouvillian (noise / dissipation)
-L_drift = superop_lindblad(sink) +superop_lindblad(diss) +superop_lindblad(deph);
-
 
 %% drift Hamiltonian
 
@@ -89,6 +86,11 @@ H_drift = heisenberg(dim, @(s,a,b) J(s)*C(a,b))...
   +op_sum(dim, @(k) omega(k) * n_op);
 
 H_drift = H_drift(p,p);
+
+
+%% drift Liouvillian (noise / dissipation)
+
+L_drift = superop_lindblad(sink, H_drift) +superop_lindblad(diss) +superop_lindblad(deph);
 
 
 %% controls
@@ -113,7 +115,7 @@ c_labels = {'Z_1', 'Z_2', 'Z_3'};
 initial = zeros(D,1); initial(prod(dim(2:end))+1) = 1; % '10..0'
 final   = zeros(D,1); final(2) = 1;  % '0..01'
 
-dyn = dynamo('open state overlap', initial(p), final(p), H_drift, H_ctrl, L_drift);
+dyn = dynamo('open state overlap', initial(p), final(p), L_drift, H_ctrl);
 dyn.system.set_labels(desc, st_labels, c_labels);
 
 % try the expensive-but-reliable gradient method

@@ -104,9 +104,6 @@ end
 sink = {op_list({{a, 3; sqrt(2 * transfer_rate) * a', n_sites+1}}, dim)};
 sink{1} = clip(sink{1});
 
-% Drift Liouvillian (noise / dissipation)
-L_drift = superop_lindblad(sink) +superop_lindblad(diss) +superop_lindblad(deph);
-
 
 %% drift Hamiltonian
 
@@ -170,6 +167,11 @@ H_FMO = blkdiag(0, H_FMO, 0); % add loss state and sink
 H_drift = U' * H_FMO * U; % hybrid basis
 
 
+%% drift Liouvillian (noise / dissipation)
+
+L_drift = superop_lindblad(sink, H_drift) +superop_lindblad(diss) +superop_lindblad(deph);
+
+
 %% controls
 
 % Control Hamiltonians / Liouvillians
@@ -219,7 +221,7 @@ final   = state(final, dim);   final   = final.data;   final   = U' * final(mask
 
 %% set up Dynamo
 
-dyn = dynamo('SB state overlap', initial, final, H_drift, H_ctrl, L_drift);
+dyn = dynamo('open state overlap', initial, final, L_drift, H_ctrl);
 dyn.system.set_labels(desc, st_labels, c_labels);
 
 % use the expensive-but-reliable gradient method

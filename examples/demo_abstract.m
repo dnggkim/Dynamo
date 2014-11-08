@@ -1,8 +1,8 @@
-function dyn = demo_abstract()
+function dyn = demo_abstract(T)
 % Example: State transfer for an abstract three-level system.
 
 % Robert Zeier 2013
-% Ville Bergholm 2013
+% Ville Bergholm 2013-2014
 
 
 %% define the problem
@@ -39,9 +39,13 @@ dyn.config.epsilon = 1e-4;
 
 %% initial controls
 
+if nargin < 1
+    T = 0.5;
+end
+
 % control sequence consists of n_b = 100 bins (first parameter),
 % the time duration (tau) of each bin fixed to 1/n_b time units (second parameter).
-dyn.seq_init(100, 0.5 * [1, 0]);
+dyn.seq_init(100, T * [1, 0]);
 % The second parameter defines the tau limits for each bin: [tau_minimum, tau_delta]
 % so that tau is always between tau_minimum and tau_minimum + tau_delta.
 % You can give an [n_b, 2] -sized array (separate limits for each bin),

@@ -58,11 +58,12 @@ classdef dynamo < matlab.mixin.Copyable
   end
   
   methods
-    function self = dynamo(task, initial, final, H_drift, H_ctrl, L_drift)
+    function self = dynamo(task, initial, final, A, B, weight)
     % Constructor
 
         if nargin < 6
-            L_drift = 0;
+            % ensemble weights
+            weight = 1;
         end
         
         task = lower(task);
@@ -86,14 +87,7 @@ classdef dynamo < matlab.mixin.Copyable
 
         %% Description of the physical system
 
-        sys = qsystem();
-
-        % TODO FIXME temporary fix: sparse to full
-        L_drift = full(L_drift);
-        H_drift = full(H_drift);
-        for k = 1:length(H_ctrl)
-            H_ctrl{k} = full(H_ctrl{k});
-        end
+        sys = qsystem(weight);
         input_rank = [size(initial, 2), size(final, 2)]; % check the validity of the inputs
         
         out = 'Target operation:';
@@ -101,24 +95,20 @@ classdef dynamo < matlab.mixin.Copyable
           case 'abstract'
             %% No transformations done on the A and B operators. 
             % the generator may be anything, hence error_full
-            if nargin == 6
-                error('L_drift not used in abstract systems.')
-            end
-
-            out = strcat(out, ' abstract ');
+            out = strcat(out, ' abstract');
             
             if strcmp(task_str, 'vector')
-                out = strcat(out, 'vector transfer\n');
+                out = strcat(out, ' vector transfer\n');
                 if any(input_rank ~= 1)
                     error('Initial and final states should be vectors.')
                 end
             else
-                out = strcat(out, 'matrix operation\n');
+                out = strcat(out, ' matrix operation\n');
                 if any(input_rank == 1)
                     error('Initial and final states should be matrices.')
                 end
             end
-            sys.abstract_representation(initial, final, H_drift, H_ctrl);
+            sys.abstract_representation(initial, final, A, B);
             config.error_func = @error_full;
             config.gradient_func = @gradient_full_finite_diff;
             config.epsilon = 1e-4;
@@ -127,10 +117,6 @@ classdef dynamo < matlab.mixin.Copyable
           case {'closed'}
             %% Closed system
             % the generator is always Hermitian and thus normal => use exact gradient
-            if nargin == 6
-                error('L_drift not used in closed systems.')
-            end
-
             switch task_str
               case 'state'
                 % TEST more efficient Hilbert space implementation
@@ -138,7 +124,7 @@ classdef dynamo < matlab.mixin.Copyable
                 if any(input_rank == 1)
                     error('Initial and final states should be state operators.')
                 end
-                sys.hilbert_representation(initial, final, H_drift, H_ctrl);
+                sys.hilbert_representation(initial, final, A, B);
                 config.f_max = (sys.norm2 +norm2(sys.X_initial)) / 2;
                 config.error_func = @error_real;
                 config.gradient_func = @gradient_g_mixed_exact;
@@ -157,7 +143,7 @@ classdef dynamo < matlab.mixin.Copyable
                         error('Initial and final states should be unitary operators.')
                     end
                 end
-                sys.hilbert_representation(initial, final, H_drift, H_ctrl);
+                sys.hilbert_representation(initial, final, A, B);
                 config.f_max = sys.norm2;
 
                 if strcmp(extra_str, 'phase')
@@ -176,7 +162,7 @@ classdef dynamo < matlab.mixin.Copyable
                 if any(input_rank == 1)
                     error('Initial and final states should be unitary operators.')
                 end
-                sys.hilbert_representation(initial, final, H_drift, H_ctrl, true);
+                sys.hilbert_representation(initial, final, A, B, true);
                 config.f_max = sys.norm2;
                 config.error_func = @error_tr;
                 config.gradient_func = @gradient_tr_exact;
@@ -198,7 +184,7 @@ classdef dynamo < matlab.mixin.Copyable
             switch task_str
               case 'state'
                 out = strcat(out, ' state transfer');
-                sys.vec_representation(initial, final, H_drift, L_drift, H_ctrl);
+                sys.vec_representation(initial, final, A, B, true);
                 if strcmp(extra_str, 'overlap')
                     % overlap error function
                     % NOTE simpler error function and gradient, but final state needs to be pure
@@ -217,7 +203,7 @@ classdef dynamo < matlab.mixin.Copyable
                 if any(input_rank == 1)
                     error('Initial and final states should be unitary operators.')
                 end
-                sys.vec_gate_representation(initial, final, H_drift, L_drift, H_ctrl);
+                sys.vec_representation(initial, final, A, B, false);
                 config.error_func = @error_full;
                 config.gradient_func = @gradient_full_1st_order;
 
@@ -225,7 +211,7 @@ classdef dynamo < matlab.mixin.Copyable
               % system S + environment E
               case 'state_partial'
                 out = strcat(out, ' partial state transfer (on S)');
-                sys.vec_representation(initial, final, H_drift, L_drift, H_ctrl);
+                sys.vec_representation(initial, final, A, B, true);
                 config.error_func = @error_full;
                 config.gradient_func = @gradient_full_1st_order;
                 
@@ -245,10 +231,15 @@ classdef dynamo < matlab.mixin.Copyable
         end
         fprintf(out);
         if sys.liouville
-            fprintf('Liouville space dimension: %d\n\n', sys.dim^2);
+            fprintf('Liouville space dimension: %d\n', sys.dim^2);
         else
-            fprintf('Hilbert space dimension: %d\n\n', sys.dim);
+            fprintf('Hilbert space dimension: %d\n', sys.dim);
         end
+        n_ensemble = sys.n_ensemble();
+        if n_ensemble > 1
+            fprintf('Optimizing over an ensemble of %d systems.\n', n_ensemble);
+        end
+        fprintf('\n');
         
           
         % store the prepared fields
@@ -356,13 +347,14 @@ classdef dynamo < matlab.mixin.Copyable
         err_out  = 0;
         grad_out = 0;
         % loop over the ensemble
-        for k=1:length(self.system.weight)
+        n_ensemble = self.system.n_ensemble();
+        for k = 1:n_ensemble
             % (real) normalized error
             err = self.config.error_func(self, k) / self.system.norm2;
 
             % weighted
             err_out = err_out +self.system.weight(k) * err;
-            fprintf('Error: %g\n', err_out);
+            fprintf('Error (%d): %g\n', k, err_out);
             if nargout < 2
                 % just the error
                 continue
@@ -377,7 +369,7 @@ classdef dynamo < matlab.mixin.Copyable
             grad = zeros(nnz(control_mask), 1);
             [Ts, Cs] = ind2sub(size(control_mask), find(control_mask));
             for z = 1:length(Ts)
-                fprintf('.');
+                %fprintf('.');
                 t = Ts(z);
                 c = Cs(z);
                 if c == tau_c
@@ -448,11 +440,17 @@ classdef dynamo < matlab.mixin.Copyable
     % If no j is given, returns the final state X(t_n).
 
     % TODO if cache.L is a full reverse propagator we could use it
+
+        n_bins = size(self.cache.H, 1);
         if nargin < 3
             k = 1;
             if nargin < 2
-                j = size(self.cache.H, 1);
+                j = n_bins; % final time
             end
+        end
+
+        if j > n_bins
+            error('Bin number too large.')
         end
         % U{j+1} is the system at t = sum(tau(1:j)) = t_j
         self.cache.U_needed_now(j+1) = true;
