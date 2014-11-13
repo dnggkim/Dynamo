@@ -694,10 +694,205 @@ TODO
 
 \section{Package contents}
 
-\subsection{Test suite}
+\DYNAMO{} consists of four major classes used to store the data of an
+optimization problem, various utility functions, unit tests and examples.
+
+\subsection{Main classes}
+
+The four main classes are 
+\begin{itemize}
+\item
+\emph{dynamo}: main container object, contains instances of the other classes
+
+\item
+\emph{qsystem}: describes the bilinear control system (usually a quantum system, hence the name)
+
+\item
+\emph{control\_seq}: stores a control sequence along with all the transformations applied on it
+
+\item
+\emph{cache}: takes care of the heavy computing (propagators etc.), caches the results
+\end{itemize}
+
+\subsubsection{Dynamo class}
+
+The dynamo class is the main container object for a control optimization problem and possibly its solution.
+It contains an instance of the qsystem, control\_seq and cache classes, plus some other data.
+\begin{itemize}
+\item
+\emph{dynamo}: constructor
+\item
+\emph{version}: returns the version string
+\item
+\emph{cache\_init}: initializes the cache object
+\item
+\emph{seq\_init}: initializes the control\_seq object
+\item
+\emph{full\_mask}: returns a full control mask with or without bin durations
+\item
+\emph{error}: evaluates the error function and possibly its gradient
+at the current point in the optimization space
+\item
+\emph{update\_controls}: updates the values controls selected in the
+mask, marks the cache objects that depend on them stale
+\item
+\emph{cache\_refresh}: performs all queued computations in the cache
+\item
+\emph{cache\_fill}: invalidates the cache, recalculates everything
+\item
+\emph{X}: computes the state of the controlled system at a given time
+\item
+\emph{plot\_seq}: plots the control sequence
+\item
+\emph{plot\_stats}: plots the optimization statistics
+\item
+\emph{plot\_X}: plots the evolution of the system state as a function
+of time. Only works for kets and state operators.
+\item
+\emph{analyze}: plots a report of the optimization run
+\item
+\emph{easy\_control}: quickly generates a reasonable set of initial
+controls, random or not
+\item
+\emph{init\_opt}: initializes the optimization parameters and statistics
+\item
+\emph{search\_BFGS}: starts a BFGS optimization run with a given control mask
+\item
+\emph{ui\_open}: opens a UI window for monitoring the optimization progress
+\item
+\emph{monitor\_func}: callback for the optimization function, executed
+once every iteration. Updates the UI window, decides whether the
+optimization should stop here.
+\item
+\emph{shake}: slightly perturbs the current control sequence. Can be
+used for escaping from local minima.
+\item
+\emph{import}: imports an array containing a control sequence (in
+explicit physical units) into the current sequence
+\item
+\emph{export}: exports the current control sequence into an array with
+explicit physical units
+\end{itemize}
+
+
+\subsubsection{Qsystem class}
+
+The qsystem class contains the physical and/or mathematical
+description of the bilinear control system we are trying to optimize.
+
+\begin{itemize}
+\item
+\emph{qsystem}: constructor
+\item
+\emph{abstract\_representation}:
+initializes an abstract bilinear control system
+\item
+\emph{hilbert\_representation}:
+initializes a Hilbert space control system
+\item
+\emph{vec\_representation}:
+initializes a Liouville space control system (in
+the vec representation)
+\item
+\emph{set\_TU}:
+sets the time unit, in seconds.
+$\hat{A} = A \text{TU}$, $\hat{t} = t / \text{TU}$.
+\item
+\emph{set\_labels}:
+defines some additional data about the system for the benefit of the
+human user: description string, state and control labels.
+\item
+\emph{n\_ensemble}:
+returns the number of systems in the ensemble sample
+\end{itemize}
+
+\subsubsection{Control sequence class}
+
+The control\_seq class encapsulates a control sequence and the
+transformation stack used to transform it.
+
+\begin{itemize}
+\item
+\emph{control\_seq}: constructor
+\item
+\emph{n\_timeslots}:
+returns the number of timeslots
+\item
+\emph{n\_controls}:
+returns the number of control fields
+\item
+\emph{get}:
+returns the current raw control fields corresponding to the given control mask
+\item
+\emph{set}:
+sets the current raw control fields to the given values, transforms
+them, computes the associated derivatives
+\item
+\emph{inv\_transform}:
+performs the inverse control transform on the given set of control
+field values, returns the resulting raw control values
+\item
+\emph{split}:
+refines the sequence by splitting the given bins into several pieces
+of equal duration
+\item
+\emph{integral}:
+computes the time integrals of the control fields
+\item
+\emph{plot}:
+plots the control field values
+\end{itemize}
+
+\subsubsection{Cache class}
+
+The cache class computes and stores the generators and various propagators computed
+for each time slice based on the data stored in qsystem and control\_seq.
+
+\begin{itemize}
+\item
+\emph{cache}: constructor
+\item
+\emph{invalidate}:
+invalidates the entire cache, forces a full recomputation of everything
+\item
+\emph{mark\_as\_stale}:
+forces the recomputation of selected time slices
+\item
+\emph{refresh}:
+recomputes all the cache objects that are both stale and needed
+\item
+\emph{g\_setup\_recalc}:
+determines the optimal way to compute the $g$ object
+\end{itemize}
+
+
+\subsection{Unit tests}
+
+\subsubsection{Test suite}
 \emph{test\_suite.m} implements all the test optimization problems used in~\cite{machnes_2011}.
 Given the number of the problem as input, it initializes a \DYNAMO{}
 instance with the physics and optimization parameters of that particular problem.
+
+\subsubsection{Gradient test}
+Given a \DYNAMO{} instance, \emph{test\_gradient.m} tests whether a
+given gradient function yields an accurate linearization of the
+corresponding error function around the current point in the
+optimization space.
+
+
+\subsection{Utility functions}
+In the \emph{utils} directory one can find the following utility functions:
+\begin{itemize}
+\item
+\emph{}:
+\end{itemize}
+
+\subsection{Examples}
+In the \emph{examples} directory we provide a number of examples of
+how to use \DYNAMO{} to solve various optimization problems, to
+serve as a tutorial for new users as well as to showcase the most important features.
+
+
 
 \appendix
 \section{Hilbert-Schmidt inner product}

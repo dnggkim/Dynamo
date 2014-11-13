@@ -17,7 +17,7 @@ classdef qsystem < matlab.mixin.Copyable
     X_initial           % initial state
     X_final             % final state
     norm2               % squared norm of final state
-    TU = []             % time unit for generators, in seconds. G = A*t/TU = A/TU * t
+    TU = []             % time unit for generators, in seconds. \hat{A} = A * TU etc.
     state_labels   = {} % names for the Hilbert space computational basis states
     control_labels = {} % names for the controls
   end
@@ -89,6 +89,19 @@ classdef qsystem < matlab.mixin.Copyable
         self.A = cell(1, n_ensemble);
         self.B = cell(n_controls, n_ensemble);
         self.B_is_Hamiltonian = true(1, n_controls);
+    end
+  
+    function [C, is_H] = get_liouvillian(self, C, message)
+    % Convert Hamiltonians into Liouvillians if necessary.
+
+        if length(C) == self.dim
+            % assume it's a Hamiltonian
+            C = -1i * comm(qsystem.check_hamiltonian(C, message));
+            is_H = true;
+        else
+            % assume it's a Liouvillian
+            is_H = false;
+        end
     end
   end
   
@@ -191,20 +204,6 @@ classdef qsystem < matlab.mixin.Copyable
         % control to vary between ensemble members... we should maybe check it here
         self.B_is_Hamiltonian = all(temp); 
     end        
-
-
-    function [C, is_H] = get_liouvillian(self, C, message)
-    % Convert Hamiltonians into Liouvillians if necessary.
-
-        if length(C) == self.dim
-            % assume it's a Hamiltonian
-            C = -1i * comm(qsystem.check_hamiltonian(C, message));
-            is_H = true;
-        else
-            % assume it's a Liouvillian
-            is_H = false;
-        end
-    end
 
 
     function set_TU(self, TU)

@@ -32,7 +32,8 @@ n_op = a' * a; % == (I-SZ) / 2; % number op
 %% parameters
 
 % energy splittings
-omega = [1 4 1 0]
+omega = [ones(1, n_sites), 0];
+omega(2) = 4;
 % site-to-site coupling
 v = 0.8
 % dephasing
