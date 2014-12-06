@@ -87,8 +87,9 @@ classdef dynamo < matlab.mixin.Copyable
 
         %% Description of the physical system
 
-        sys = qsystem(weight);
+        input_dim  = [size(initial, 1), size(final, 1)];
         input_rank = [size(initial, 2), size(final, 2)]; % check the validity of the inputs
+        sys = qsystem(weight, input_dim, size(B, 2)); % FIXME assumes B is a cell array
         
         out = 'Target operation:';
         switch system_str
@@ -124,7 +125,7 @@ classdef dynamo < matlab.mixin.Copyable
                 if any(input_rank == 1)
                     error('Initial and final states should be state operators.')
                 end
-                sys.hilbert_representation(initial, final, A, B);
+                sys.hilbert_representation(initial, final, A, B, false);
                 config.f_max = (sys.norm2 +norm2(sys.X_initial)) / 2;
                 config.error_func = @error_real;
                 config.gradient_func = @gradient_g_mixed_exact;
@@ -143,7 +144,7 @@ classdef dynamo < matlab.mixin.Copyable
                         error('Initial and final states should be unitary operators.')
                     end
                 end
-                sys.hilbert_representation(initial, final, A, B);
+                sys.hilbert_representation(initial, final, A, B, false);
                 config.f_max = sys.norm2;
 
                 if strcmp(extra_str, 'phase')
@@ -282,8 +283,7 @@ classdef dynamo < matlab.mixin.Copyable
     % Create the control sequence and a matching cache.
     % The varargin are the control_type and control_par cell vectors.
 
-        n_controls = size(self.system.B, 1);
-        self.seq = control_seq(n_timeslots, n_controls, tau_par, varargin{:});
+        self.seq = control_seq(n_timeslots, self.system.n_controls(), tau_par, varargin{:});
         if any(self.seq.control_type(~self.system.B_is_Hamiltonian) == '.')
             disp('Warning: Liouvillian control ops with possibly negative control values.')
         end
@@ -351,10 +351,10 @@ classdef dynamo < matlab.mixin.Copyable
         for k = 1:n_ensemble
             % (real) normalized error
             err = self.config.error_func(self, k) / self.system.norm2;
+            fprintf('Error (%d): %g\n', k, err);
 
-            % weighted
+            % weighted ensemble average
             err_out = err_out +self.system.weight(k) * err;
-            fprintf('Error (%d): %g\n', k, err_out);
             if nargout < 2
                 % just the error
                 continue

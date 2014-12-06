@@ -15,5 +15,5 @@ if c < 0
 else
     % other control, approximate
     self.gradient_test(t, k, c);
-    ret = self.seq.tau(t) * self.seq.fields_deriv(t, c) * inprod(temp, partial_trace(self.cache.L{t+1, k} * self.system.B{c, k} * self.cache.U{t+1, k}, self.system.dimSE, 2));
+    ret = self.seq.tau(t) * self.seq.fields_deriv(t, c) * inprod(temp, partial_trace(self.cache.L{t+1, k} * self.system.B{k, c} * self.cache.U{t+1, k}, self.system.dimSE, 2));
 end

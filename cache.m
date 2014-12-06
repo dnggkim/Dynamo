@@ -144,7 +144,7 @@ classdef cache < matlab.mixin.Copyable
 
           n_timeslots = size(self.H, 1);
           n_ensemble  = size(self.H, 2);
-          n_controls  = size(sys.B, 1);
+          n_controls  = sys.n_controls();
           
           % computing g may require additional U and L elements, so check that first
           g_recompute_now = self.g_needed_now && self.g_is_stale;
@@ -202,7 +202,7 @@ classdef cache < matlab.mixin.Copyable
               H = sys.A{k};
               for c = 1:n_controls
                   u = fields(t, c);
-                  H = H +u * sys.B{c, k};
+                  H = H +u * sys.B{k, c};
               end
               self.H{t, k} = H;
           end

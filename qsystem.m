@@ -10,9 +10,9 @@ classdef qsystem < matlab.mixin.Copyable
     liouville = false   % Do the system objects X reside in Liouville or Hilbert space?
 
     weight = 1          % vector, length == n_ensemble, weights for the ensemble samples
-    A                   % cell vector of drift generators, size == [1, n_ensemble]
-    B                   % cell array of control generators, size == [n_controls, n_ensemble]
-    B_is_Hamiltonian    % vector, length == n_controls, true if corresponding B items represent Hamiltonians
+    A                   % cell vector of drift generators, size == [n_ensemble, 1]
+    B                   % cell array of control generators, size == [n_ensemble, n_controls]
+    B_is_Hamiltonian    % vector, size == [1, n_controls], true when corresponding B items represent Hamiltonians
 
     X_initial           % initial state
     X_final             % final state
@@ -32,7 +32,7 @@ classdef qsystem < matlab.mixin.Copyable
       function H = check_hamiltonian(H, message)
       % Raises an error if H is not a valid Hamiltonian.
           if ~qsystem.is_hermitian(H)
-              error(strcat(mess, ' is not hermitian.'))
+              error(strcat(message, ' is not hermitian.'))
           end
           H = full(H); % eig cannot handle sparse matrices...
       end
@@ -65,30 +65,13 @@ classdef qsystem < matlab.mixin.Copyable
 
 
   methods (Access = private)
-    function [A, B] = common_init(self, i, f, A, B)
-    % Common initialization. TODO Some of this could be moved to constructor.
-
-        % Set up the Hilbert space dimensions.
-        % E may not exist, in which case it has dimension 1.
-        self.dim      = size(i, 1); % S+E
-        self.dimSE(1) = size(f, 1); % S
-        temp = self.dim / self.dimSE(1); % E
-        if floor(temp) ~= temp  % must be an integer
-            error('Initial state must be an object on S+E, final state an object on S.');
-        end
-        self.dimSE(2) = temp;
-        
-        n_ensemble = self.n_ensemble();
-        n_controls = size(B, 2); % FIXME assumes cell array
+    function [A, B] = common_init(self, A, B)
+    % Common initialization.
 
         % prepare the generators
+        n_ensemble = self.n_ensemble();
         A = qsystem.test_gens(A, n_ensemble);
         B = qsystem.test_gens(B, n_ensemble);
-          
-        % initialize the generators
-        self.A = cell(1, n_ensemble);
-        self.B = cell(n_controls, n_ensemble);
-        self.B_is_Hamiltonian = true(1, n_controls);
     end
   
     function [C, is_H] = get_liouvillian(self, C, message)
@@ -97,6 +80,7 @@ classdef qsystem < matlab.mixin.Copyable
         if length(C) == self.dim
             % assume it's a Hamiltonian
             C = -1i * comm(qsystem.check_hamiltonian(C, message));
+            C = full(C);  % TODO norm cannot handle sparse matrices, used in dynamo/gradient_test
             is_H = true;
         else
             % assume it's a Liouvillian
@@ -107,7 +91,7 @@ classdef qsystem < matlab.mixin.Copyable
   
   
   methods
-    function self = qsystem(weight)
+    function self = qsystem(weight, input_dim, n_controls)
     % constructor
         
         % ensemble init
@@ -115,23 +99,38 @@ classdef qsystem < matlab.mixin.Copyable
             error('Ensemble weights must be given in a vector.')
         end
         self.weight = weight;
+        n_ensemble = self.n_ensemble();
+
+        % Set up the Hilbert space dimensions.
+        % E may not exist, in which case it has dimension 1.
+        self.dim      = input_dim(1); % S+E, dim of initial
+        self.dimSE(1) = input_dim(2); % S, dim of final
+        temp = self.dim / self.dimSE(1); % E
+        if floor(temp) ~= temp  % must be an integer
+            error('Initial state must be an object on S+E, final state an object on S.');
+        end
+        self.dimSE(2) = temp;
+
+        % initialize the generator containers
+        self.A = cell(n_ensemble, 1);
+        self.B = cell(n_ensemble, n_controls);
+        self.B_is_Hamiltonian = true(1, n_controls);
     end
 
 
     function abstract_representation(self, i, f, A, B)
     % X_ are abstract Hilbert space objects (vectors or matrices).
 
-        [A, B] = self.common_init(i, f, A, B);
+        [A, B] = self.common_init(A, B);
         self.X_initial = i;
         self.X_final = f;
         self.norm2 = norm2(self.X_final);
 
         % set the generators
-        [n_controls, n_ensemble] = size(self.B);
-        for k = 1:n_ensemble
+        for k = 1:self.n_ensemble()
             self.A{k} = A(k);
-            for c = 1:n_controls
-                self.B{c, k} = B(k, c);
+            for c = 1:self.n_controls()
+                self.B{k, c} = B(k, c);
             end
         end
     end
@@ -143,9 +142,9 @@ classdef qsystem < matlab.mixin.Copyable
     % For _partial tasks, i \in SE, f \in S.
     % (NOTE: the generators are not pure Hamiltonians, there's an extra -1i!)
         
-        [A, B] = self.common_init(i, f, A, B);
+        [A, B] = self.common_init(A, B);
         self.X_initial = i;
-        if nargin == 6 && use_partial
+        if use_partial
             % only with gate_partial
             self.X_final = kron(f, eye(self.dimSE(2)));
         else
@@ -157,11 +156,10 @@ classdef qsystem < matlab.mixin.Copyable
         self.norm2 = norm2(self.X_final);
     
         % set the generators
-        [n_controls, n_ensemble] = size(self.B);
-        for k = 1:n_ensemble
+        for k = 1:self.n_ensemble()
             self.A{k} = -1i * qsystem.check_hamiltonian(A(k), sprintf('Drift Hamiltonian (ensemble %d)', k));
-            for c = 1:n_controls
-                self.B{c, k} = -1i * qsystem.check_hamiltonian(B(k, c), sprintf('Control Hamiltonian %d (ensemble %d)', c, k));
+            for c = 1:self.n_controls()
+                self.B{k, c} = -1i * qsystem.check_hamiltonian(B(k, c), sprintf('Control Hamiltonian %d (ensemble %d)', c, k));
             end
         end
     end
@@ -172,7 +170,7 @@ classdef qsystem < matlab.mixin.Copyable
     % Used for open system tasks: state, state_partial, gate, (TODO gate_partial).
 
         self.liouville = true;
-        [A, B] = self.common_init(i, f, A, B);
+        [A, B] = self.common_init(A, B);
         
         if use_states
             % state vectors are converted to state operators
@@ -185,18 +183,18 @@ classdef qsystem < matlab.mixin.Copyable
             self.X_initial = vec(i);
             self.X_final   = vec(f);
         else
+            % i and f are gates
             self.X_initial = lrmul(i, i'); % == kron(conj(i), i);
             self.X_final   = lrmul(f, f'); % == kron(conj(f), f);
         end
         self.norm2 = norm2(self.X_final);
 
         % Set up Liouville space generators.
-        [n_controls, n_ensemble] = size(self.B)
-        temp = true(n_ensemble, n_controls);
-        for k = 1:n_ensemble
+        temp = true(size(self.B));
+        for k = 1:self.n_ensemble()
             self.A{k} = self.get_liouvillian(A(k), sprintf('Drift Hamiltonian (ensemble %d)', k));
-            for c = 1:n_controls
-                [self.B{c, k}, temp(k, c)] =...
+            for c = 1:self.n_controls()
+                [self.B{k, c}, temp(k, c)] =...
                     self.get_liouvillian(B(k, c), sprintf('Control Hamiltonian %d (ensemble %d)', c, k));
             end
         end
@@ -217,7 +215,7 @@ classdef qsystem < matlab.mixin.Copyable
 
         self.description = desc;
         D = self.dimSE(1); % label just the S states
-        n_controls = size(self.B, 1);
+        n_controls = self.n_controls();
         
         if nargin < 3 || isempty(st_labels)
             % use default state labels
@@ -266,6 +264,11 @@ classdef qsystem < matlab.mixin.Copyable
     function ret = n_ensemble(self)
     % Returns the number of systems in the ensemble sample.
         ret = length(self.weight);
+    end
+
+    function ret = n_controls(self)
+    % Returns the number of control fields.
+        ret = size(self.B, 2);
     end
   end
 end
