@@ -122,8 +122,8 @@ classdef dynamo < matlab.mixin.Copyable
               case 'state'
                 % TEST more efficient Hilbert space implementation
                 out = strcat(out, ' mixed state transfer');
-                if any(input_rank == 1)
-                    error('Initial and final states should be state operators.')
+                if all(input_rank == 1)
+                    error('Either the initial or the final state should be a state operator.')
                 end
                 sys.hilbert_representation(initial, final, A, B, false);
                 config.f_max = (sys.norm2 +norm2(sys.X_initial)) / 2;
@@ -266,13 +266,10 @@ classdef dynamo < matlab.mixin.Copyable
         end
 
         % exact gradient? we need the eigendecomposition data.
-        use_eig = false;
         temp = self.config.gradient_func;
-        if isequal(temp, @gradient_g_exact)...
-                || isequal(temp, @gradient_g_mixed_exact)...
-                || isequal(temp, @gradient_tr_exact)
-            use_eig = true;
-        end
+        use_eig = isequal(temp, @gradient_g_exact)...
+                  || isequal(temp, @gradient_g_mixed_exact)...
+                  || isequal(temp, @gradient_tr_exact);
 
         % UL_hack: mixed states in a closed system
         self.cache = cache(self.seq.n_timeslots(), self.system.n_ensemble(), self.system.X_initial, L_end, use_eig, self.config.UL_hack);
@@ -318,7 +315,7 @@ classdef dynamo < matlab.mixin.Copyable
     end
 
 
-    function [err_out, grad_out] = error(self, control_mask)
+    function [err_out, grad_out] = compute_error(self, control_mask)
     % Returns the error (and its gradient) at current control values.
     % This is where we sum over the system ensemble if necessary.
 
@@ -349,7 +346,7 @@ classdef dynamo < matlab.mixin.Copyable
         % loop over the ensemble
         n_ensemble = self.system.n_ensemble();
         for k = 1:n_ensemble
-            % (real) normalized error
+            %% (real) normalized error
             err = self.config.error_func(self, k) / self.system.norm2;
             fprintf('Error (%d): %g\n', k, err);
 

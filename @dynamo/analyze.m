@@ -2,7 +2,7 @@ function analyze(self)
 % Analyzes the results of an optimization run.
 
 
-err = self.error();
+err = self.compute_error();
 fprintf('Final normalized error: %g\n    Wall time: %g s\n    CPU  time: %g s\nTermination reason: %s\n\n\n', ...
 	err, self.stats.wall_time(end), self.stats.cpu_time(end), self.opt.term_reason);
 

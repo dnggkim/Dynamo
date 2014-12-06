@@ -48,6 +48,6 @@ function [err, grad] = goal_and_gradient_function_wrapper(self, x)
     self.opt.N_eval = self.opt.N_eval + 1;
 
     self.update_controls(x, self.opt.control_mask);
-    [err, grad] = self.error(self.opt.control_mask);
+    [err, grad] = self.compute_error(self.opt.control_mask);
     self.opt.last_grad_norm = sqrt(sum(sum(grad .* grad)));
 end

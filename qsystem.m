@@ -36,6 +36,13 @@ classdef qsystem < matlab.mixin.Copyable
           end
           H = full(H); % eig cannot handle sparse matrices...
       end
+
+      function psi = to_op(psi)
+      % Converts state vectors to state operators.
+          if size(psi, 2) == 1
+              psi = psi * psi';
+          end
+      end
       
       function ret = test_gens(C, n_ensemble)
       % Tests the validity of generators, converts them into
@@ -174,14 +181,8 @@ classdef qsystem < matlab.mixin.Copyable
         
         if use_states
             % state vectors are converted to state operators
-            if size(i, 2) == 1
-                i = i * i';
-            end
-            if size(f, 2) == 1
-                f = f * f';
-            end
-            self.X_initial = vec(i);
-            self.X_final   = vec(f);
+            self.X_initial = vec(qsystem.to_op(i));
+            self.X_final   = vec(qsystem.to_op(f));
         else
             % i and f are gates
             self.X_initial = lrmul(i, i'); % == kron(conj(i), i);

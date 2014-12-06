@@ -27,7 +27,7 @@ self.opt.term_cond = struct( ...
     'min_gradient_norm', 1e-20);
 
 if isfield(options, 'max_wall_time')
-    % TEST FIXME
+    % TEST FIXME NOW
     self.opt.term_cond.max_wall_time = options.max_wall_time
 end
 
@@ -47,7 +47,7 @@ self.opt.cpu_start = cputime();
 
 
 %% statistics
-self.stats.error = self.error();
+self.stats.error = self.compute_error();
 self.stats.wall_time = 0;
 self.stats.cpu_time  = 0;
 self.stats.integral  = self.seq.integral();
