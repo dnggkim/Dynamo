@@ -8,14 +8,15 @@ Introduction
 ============
 
 DYNAMO is a flexible framework for quantum optimal control algorithms.
+It requires MATLAB R2011a or newer (matlab.mixin.Copyable).
 
-If you use DYNAMO in your research, please add an attribution in the form of the following reference: 
-S. Machnes et-al, arXiv 1011.4874 
-
+The latest development version can be downloaded from our Git repository at https://github.com/smite/Dynamo
 For the latest version of this software, guides and information, visit http://www.qlib.info
 
 The user manual can be found here: docs/dynamo_manual.tex
 
+If you use DYNAMO in your research, please add an attribution in the form of the following reference:
+S. Machnes et-al, arXiv 1011.4874
 
 
 Getting started

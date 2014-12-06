@@ -1,15 +1,20 @@
-========================
-TODO list for Dynamo 1.3
-========================
+======================
+TODO list for Dynamo 2
+======================
 
 (*) = done
 
 
-1. Sample/reference problem set
+1. Sample/reference problem set, unit tests
      (1) Include all the reference problems from Dynamo 1.2
-     (2) Additional sample problems for dissipative/partial systems
-           * Must cover all task types
-      3. Example of optimizing taus
+      2. Additional demos (covering all the new features/tasks)
+         *  open systems, _partial tasks
+         *  optimizing taus
+      3. Tests
+        (*) test_gradient
+         *  script that runs all the demos (to make sure they still run!)
+         *  the same unitary (closed) optimization problem should yield a similar solution in both "closed" and "open" modes
+         *  the same unitary sequence must return the same error in both "closed" and "open" modes
 
 2. Minimal benchmarking framework
       1. Allow user to easily compare several algorithms for a given problem
@@ -17,11 +22,11 @@ TODO list for Dynamo 1.3
 
 3. Robust data provenance, reproducibility
      (1) Store in the dataset all necessary metadata, such as
-	 Dynamo version, a timestamp, author name, description string etc.
+         Dynamo version, a timestamp, author name, description string etc.
            * Going from description to H is easy, H to description hard/impossible.
       2. Store the optimization parameters, initial sequence etc. so
          the exact same optimization can be re-run any time. Add a
-	 function for this.
+         function for this.
      (3) In the system description, include also dimension vector and
          labels for the states and controls.
 
@@ -35,7 +40,7 @@ TODO list for Dynamo 1.3
 
 5. Additional documentation
       1. Inline in the code
-	   (*) Modify some variable names to be self-documenting
+           (*) Modify some variable names to be self-documenting
       2. At function headers so Matlab's "help" gives more meaningful results
       3. Wiki
       4. Additional examples, see also 1.2
@@ -56,11 +61,19 @@ TODO list for Dynamo 1.3
       3. Optimizers
            * (k-BFGS, using fminunc), Newton-Raphson, Monotonic Krotov variant?, Simplex? (no gradient needed)
 
-8. User interface
+8. User interface / features
       1. More button-type ui controls for the ui window
-           * Enable/disable tau optimization, save snapshot?, pause?, plotting interval...
+          *  Enable/disable tau optimization
+          *  save a copy/snapshot
+          *  pause
+          *  plotting interval
+          *  bin splitting
       2. Better API
-           * Replace s and sb with closed, open?
+         (*) Replace s and sb with closed, open
+          *  fix other bad/undescriptive names 
+      3. Other features
+          *  fix the stats system so that an interrupted optimization run can be continued
+          *  automatic top curve sweeping function
 
 
 Random ideas and things to test:
@@ -69,8 +82,6 @@ Random ideas and things to test:
 
 - S+E, S+E+B: Kosut's paper on non-markovian distance measures:
   http://arxiv.org/pdf/quant-ph/0606064v1
-
-- uniform interface: dim as first or second parameter?
 
 - When are the controls kind of self-limited? Only if we need to wait
   for H_drift (coupling) to complete the operation?
@@ -106,3 +117,11 @@ Random ideas and things to test:
 - check that the chosen gradient func matches with the error func!
 
 - fix the 'none yet' term reason when fminunc decides to terminate on its own
+
+- make setting control bounds/params easier/more automated
+
+- make sure that (printed) error function values are (1) somehow physical, (2) same/comparable between all optimization tasks
+
+- problems resulting from using an approximated gradient (incl. finite diff with bad epsilon): breaking symmetries in controls, bad convergence, fake "dynamic" local minima?
+
+- decide what to do with the 1st order gradients, they're awful. see @dynamo/gradient_test.m
