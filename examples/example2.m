@@ -23,5 +23,5 @@ dyn.seq_init(100, 16 * [1, 0]);
 dyn.easy_control(0.1 * ones(1,2));
 
 dyn.ui_open();
-dyn.search_BFGS(dyn.full_mask(), struct('Display', 'final', 'plot_interval', 1));
+dyn.search_BFGS();
 %dyn.analyze();

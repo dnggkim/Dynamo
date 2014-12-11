@@ -67,7 +67,7 @@ dyn.easy_control(randn(1,2));
 %% optimize
 
 dyn.ui_open();
-dyn.search_BFGS(dyn.full_mask(), struct('Display', 'final', 'plot_interval', 1));
+dyn.search_BFGS();
 %dyn.analyze();
 %figure; dyn.plot_X();
 %figure; dyn.plot_seq();

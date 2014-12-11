@@ -266,7 +266,7 @@ dyn.easy_control(1e-3 * f7_5_plenio, 0.0, 0, false);
 figure(); dyn.plot_X(gca(), true, 0.001);
 
 dyn.ui_open();
-dyn.search_BFGS(dyn.full_mask(), struct('Display', 'final', 'plot_interval', 1));
+dyn.search_BFGS();
 
 % "after" plot
 figure(); dyn.plot_X(gca(), true, 0.001);

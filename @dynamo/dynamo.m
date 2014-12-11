@@ -292,9 +292,6 @@ classdef dynamo < matlab.mixin.Copyable
     function mask = full_mask(self, optimize_tau)
     % Returns a full control mask.
         
-        if nargin < 2
-            optimize_tau = false;
-        end
         n_timeslots = self.seq.n_timeslots();
         n_controls = self.seq.n_controls();
 
