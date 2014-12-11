@@ -31,10 +31,10 @@ classdef qsystem < matlab.mixin.Copyable
       
       function H = check_hamiltonian(H, message)
       % Raises an error if H is not a valid Hamiltonian.
+          H = full(H); % eig and norm cannot handle sparse matrices...
           if ~qsystem.is_hermitian(H)
               error(strcat(message, ' is not hermitian.'))
           end
-          H = full(H); % eig cannot handle sparse matrices...
       end
 
       function psi = to_op(psi)
