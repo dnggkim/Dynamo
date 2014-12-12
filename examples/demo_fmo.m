@@ -6,9 +6,6 @@ function dyn = demo_fmo(T)
 
 % Ville Bergholm 2012-2014
 
-global qit
-%randseed(825);
-
 
 SX = [0 1; 1 0];
 SY = [0 -1i; 1i 0];

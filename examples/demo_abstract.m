@@ -18,19 +18,18 @@ C1(2,1) = 1;
 C2 = sparse(3,3);
 C2(2,3) = -1;
 C2(3,2) = 1;
-C = {C1, C2};
 
-cl = {'Omega_p', 'Omega_s'};
+c_labels = {'Omega_p', 'Omega_s'};
 
 % drift operator
-H = sparse(3,3);
-H(2,2) = -1;
+H_drift = sparse(3,3);
+H_drift(2,2) = -1;
 
 final = [0 0 1].';
 initial = [1 0 0].';
 
-dyn = dynamo('abstract vector', initial, final, H, C);
-dyn.system.set_labels(desc, dim, cl);
+dyn = dynamo('abstract vector', initial, final, H_drift, {C1, C2});
+dyn.system.set_labels(desc, dim, c_labels);
 
 dyn.config.error_func = @error_full;
 dyn.config.gradient_func = @gradient_full_finite_diff;
