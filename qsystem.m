@@ -235,7 +235,7 @@ classdef qsystem < matlab.mixin.Copyable
             st_labels = cell(1, D);
             % build the labels
             for k=1:D
-                st_labels{k} = ['|', char(ket + '0'), '\rangle'];
+                st_labels{k} = ['$|', char(ket + '0'), '\rangle$'];
                 for b = n:-1:1 % start from least significant digit
                     ket(b) = ket(b)+1;
                     if ket(b) < dim(b)

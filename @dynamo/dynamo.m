@@ -432,19 +432,22 @@ classdef dynamo < matlab.mixin.Copyable
     function ret = X(self, j, k)
     % Returns X(t_j), the controlled system at time t_j.
     % If no j is given, returns the final state X(t_n).
+    % k is an optional ensemble index.
 
-    % TODO if cache.L is a full reverse propagator we could use it
+        n_timeslots = self.seq.n_timeslots();
 
-        n_bins = size(self.cache.H, 1);
-        if nargin < 3
-            k = 1;
-            if nargin < 2
-                j = n_bins; % final time
-            end
+        if nargin < 3 || isempty(k)
+            k = 1; % TODO for the lack of a better option. maybe average over the ensemble?
+        end
+        if nargin < 2 || isempty(j)
+            j = n_timeslots; % final time
         end
 
-        if j > n_bins
-            error('Bin number too large.')
+        if k <= 0 || k > self.system.n_ensemble()
+            error('Bad ensemble index.')
+        end
+        if j < 0 || j > n_timeslots
+            error('Bad timeslot.')
         end
         % U{j+1} is the system at t = sum(tau(1:j)) = t_j
         self.cache.U_needed_now(j+1) = true;
@@ -481,24 +484,38 @@ classdef dynamo < matlab.mixin.Copyable
     end
 
 
-    function plot_X(self, ax, full, dt)
-    % Plots the evolution of the initial system as a function of time.
+    function plot_X(self, dt, k, ax, full_plot)
+    % Plots the evolution of the initial system as a function of
+    % time under the current control sequence.
+    % dt, if given, is the timestep.
+    % k is an optional ensemble index.
+    % ax are the set of axes the plot goes into.
     % TODO for now it only handles kets and state ops
 
-        n_timeslots = self.seq.n_timeslots();
-
+        if nargin < 5
+            full_plot = true;
+        if nargin < 4
+            ax = gca();
         if nargin < 3
-            full = true;
-
-            if nargin < 2
-                ax = gca();
-            end
+            k = 1; % TODO should match the choice in X()
+        if nargin < 2
+            dt = []; % one plot point per bin
+        end
+        end
+        end
         end
 
-        if full
+        n_timeslots = self.seq.n_timeslots();
+        n_ensemble  = self.system.n_ensemble();
+
+        if full_plot
             % things that don't change and aren't deleted by cla
             set_plotstyle(ax);
-            title(ax, self.system.description);
+            temp = self.system.description;
+            if ~isempty(k)
+                temp = sprintf('%s (%d)', temp, k);
+            end
+            title(ax, temp);
             xlabel(ax, 'time');
             ylabel(ax, 'probability');
             set(ax, 'NextPlot','replacechildren'); % so plot() won't reset these properties
@@ -509,28 +526,27 @@ classdef dynamo < matlab.mixin.Copyable
         % what should we plot?
         if self.system.liouville
             state_probs = @prob_stateop;
+            %state_probs = @eig_stateop; % FIXME
         else
             state_probs = @prob_ket;
         end
-        %state_probs = @eig_stateop; % FIXME
 
-        if nargin < 4
+        if isempty(dt)
             % one plot point per timeslot
-            for k = 0:n_timeslots
-                res(k+1, :) = state_probs(self.X(k));
+            for j = 0:n_timeslots
+                res(j+1, :) = state_probs(self.X(j, k));
             end
             t = [0; cumsum(self.seq.tau)];
         else
             % use the given dt for plotting
             t = [0];
-            X = self.X(0);
+            X = self.X(0, k);
             res(1, :) = state_probs(X);
 
-            for k = 1:n_timeslots
-                X_end = self.X(k); % make sure the cache is up-to-date
-                % FIXME ensembles
-                G = self.cache.H{k};
-                tau = self.seq.tau(k);
+            for j = 1:n_timeslots
+                X_end = self.X(j, k); % make sure the cache is up-to-date
+                G = self.cache.H{j, k};
+                tau = self.seq.tau(j);
                 
                 n_steps = ceil(tau / dt); % at least one point per timeslot
                 step = tau / n_steps;
@@ -546,7 +562,7 @@ classdef dynamo < matlab.mixin.Copyable
         end
         plot(ax, t, res);
         axis(ax, [0, t(end), 0, 1]);
-        legend(self.system.state_labels);
+        legend(self.system.state_labels, 'interpreter', 'latex');
 
         % NOTE: due to the horrible scoping rules of MATLAB, we use small x
         % in these functions as not to nuke the capital X in the parent function.
