@@ -37,13 +37,6 @@ classdef qsystem < matlab.mixin.Copyable
           end
       end
 
-      function psi = to_op(psi)
-      % Converts state vectors to state operators.
-          if size(psi, 2) == 1
-              psi = psi * psi';
-          end
-      end
-      
       function ret = test_gens(C, n_ensemble)
       % Tests the validity of generators, converts them into
       % function handles taking the ensemble index as a parameter.
@@ -181,8 +174,8 @@ classdef qsystem < matlab.mixin.Copyable
         
         if use_states
             % state vectors are converted to state operators
-            self.X_initial = vec(qsystem.to_op(i));
-            self.X_final   = vec(qsystem.to_op(f));
+            self.X_initial = vec(to_op(i));
+            self.X_final   = vec(to_op(f));
         else
             % i and f are gates
             self.X_initial = lrmul(i, i'); % == kron(conj(i), i);

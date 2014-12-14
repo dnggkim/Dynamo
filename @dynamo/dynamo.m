@@ -125,7 +125,7 @@ classdef dynamo < matlab.mixin.Copyable
                 if all(input_rank == 1)
                     error('Either the initial or the final state should be a state operator.')
                 end
-                sys.hilbert_representation(initial, final, A, B, false);
+                sys.hilbert_representation(to_op(initial), to_op(final), A, B, false);
                 config.f_max = (sys.norm2 +norm2(sys.X_initial)) / 2;
                 config.error_func = @error_real;
                 config.gradient_func = @gradient_g_mixed_exact;
@@ -256,11 +256,14 @@ classdef dynamo < matlab.mixin.Copyable
     function cache_init(self)
     % Set up cache after the number of time slots changes.
     % This is where all the bad code went.
-        
+
+        U_start = self.system.X_initial;
+
         % some error functions need a full reverse propagator.
         temp = self.config.error_func;
         if isequal(temp, @error_full)
-            L_end = eye(length(self.system.X_final)); % L: full reverse propagator
+            % NOTE X_initial, because in state_partial tasks X_final only describes the first subsystem
+            L_end = eye(length(self.system.X_initial)); % L: full reverse propagator
         else
             L_end = self.system.X_final'; % L: X_final' propagated backwards
         end
@@ -272,7 +275,7 @@ classdef dynamo < matlab.mixin.Copyable
                   || isequal(temp, @gradient_tr_exact);
 
         % UL_hack: mixed states in a closed system
-        self.cache = cache(self.seq.n_timeslots(), self.system.n_ensemble(), self.system.X_initial, L_end, use_eig, self.config.UL_hack);
+        self.cache = cache(self.seq.n_timeslots(), self.system.n_ensemble(), U_start, L_end, use_eig, self.config.UL_hack);
     end
 
 
