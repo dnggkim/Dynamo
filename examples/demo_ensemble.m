@@ -18,7 +18,7 @@ end
 
 %% Pauli matrices etc.
 
-Z = diag([1, -1]); % looks interesting .. maybe not.
+Z = diag([1, -1]); % looks interesting .. maybe not. test3
 
 
 %% Define the physics of the problem
